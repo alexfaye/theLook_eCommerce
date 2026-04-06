@@ -2,7 +2,7 @@ config {
     type: "view",
     name: "Order_details",
     tags: ["sales_funnel_report"],
-    description: "Analyze the user behavior."
+    description: "Analyze the order details."
 }
 
 with base_items as (
