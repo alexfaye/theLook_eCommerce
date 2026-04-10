@@ -2,8 +2,32 @@ config {
     type: "view",
     name: "user_behavior",
     tags: ["sales_funnel_report"],
-    description: "Capture user sessions and event types across traffic sources."
+    description: "Capture user sessions, order details and event types across traffic sources."
 }
 
-select user_id, session_id, traffic_source, browser, event_type, cast(created_at as Date) as event_date, created_at as event_timestamp
+with base_items as (
+    select id, order_id, user_id, product_id, sale_price, status, created_at, shipped_at, delivered_at, returned_at
+    from ${ref("order_items")}
+    where cast(created_at as Date) >= '${variables.start_date}'),
+
+    orders_clean as (
+    select o.order_id, o.user_id, o.status as order_status, o.created_at as order_created_at, o.delivered_at, o.returned_at, o.num_of_item,
+    bi.product_id, bi.sale_price, bi.status, bi.created_at
+    from ${ref("orders")} o
+    join base_items bi on bi.order_id=o.order_id
+)
+
+select user_id, cast(null as string) as session_id, created_at as event_timestamp, 'purchase' as event_type, 
+cast(null as string) as browser, cast(null as string) as traffic_source, cast(created_at as Date) as event_date,
+order_id, product_id, sale_price, status as item_status, order_status, created_at as item_created_at,
+delivered_at, returned_at
+from orders_clean
+
+union all
+
+select user_id, session_id, created_at as event_timestamp, event_type, browser, traffic_source,
+cast(created_at as Date) as event_date, cast(null as int64) as order_id, cast(null as int64) as product_id, 
+cast(null as float64) as sale_price, cast(null as string) as item_status, cast(null as string) as order_status, 
+cast(null as timestamp) as item_created_at, cast(null as timestamp) as delivered_at, cast(null as timestamp) as returned_at
 from ${ref("events")}
+where event_type <> 'purchase' --remove the purchase events because they also exists in order details part.
