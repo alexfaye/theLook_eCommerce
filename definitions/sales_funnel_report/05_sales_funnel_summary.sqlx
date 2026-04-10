@@ -9,11 +9,12 @@ config {
     }
 }
 
-select ub.user_id, ub.session_id, ub.event_date, ub.traffic_source, ub.browser, ub.event_timestamp, ub.event_type,
+select ub.user_id, ub.session_id, ub.event_timestamp, ub.event_type, ub.browser, ub.traffic_source, ub.event_date, ub.order_id,
+ub.sale_price, ub.item_status, ub.order_status, ub.item_created_at, ub.delivered_at, ub.returned_at,
 us.age_band, us.gender, us.country, us.city, us.latitude, us.longitude,
 pd.product_id, pd.product_name, pd.product_category, pd.product_brand, pd.department, pd.retail_price, pd.cost,
-od.order_id, od.sale_price, od.item_status, od.order_status, (od.sale_price-pd.cost) as profit, ((od.sale_price-pd.cost)/pd.retail_price) as margin,
-case when od.returned_at is not null then 'true'
+(ub.sale_price-pd.cost) as profit, ((ub.sale_price-pd.cost)/pd.retail_price) as margin,
+case when ub.returned_at is not null and ub.event_type='purchase' then 'true'
 else 'false' end as is_returned,
 case when ub.event_type='cart' then 1
 else 0 end as added_to_cart,
@@ -21,5 +22,4 @@ case when ub.event_type='purchase' then 1
 else 0 end as purchased
 from ${ref("user_behavior")} ub
 left join ${ref("user_segments")} us on us.user_id=ub.user_id
-left join ${ref("order_details")} od on od.order_id=us.order_id
-left join ${ref("product_dim")} pd on pd.product_id=od.product_id
+left join ${ref("product_dim")} pd on pd.product_id=ub.product_id
